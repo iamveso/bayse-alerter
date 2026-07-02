@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-bayse}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  app:
+    build:
+      context: .
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-bayse}?sslmode=disable
+      HTTP_PORT: ${HTTP_PORT:-8080}
+    ports:
+      - "${HTTP_PORT:-8080}:${HTTP_PORT:-8080}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - /bin/sh
+      - -c
+      - |
+        for attempt in $$(seq 1 30); do
+          if /usr/local/bin/migrate -path /app/migrations -database "$$DATABASE_URL" up; then
+            exec /app/bayse-alerter
+          fi
+          echo "migration attempt $$attempt failed; retrying in 2s"
+          sleep 2
+        done
+        echo "migration failed after 30 attempts"
+        exit 1
+
+volumes:
+  postgres-data:

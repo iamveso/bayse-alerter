@@ -1,0 +1,36 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Go build outputs
+bin/
+dist/
+build/
+*.exe
+*.test
+*.out
+
+# Go coverage/profiling
+coverage/
+coverage.out
+*.coverprofile
+*.prof
+
+# Local temporary files
+tmp/
+temp/
+*.tmp
+*.log
+
+# Editor and OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Local scratch/exported data
+*.json
+!*.example.json
