@@ -169,6 +169,8 @@ Percent-move rules compare the current price against the oldest stored sample in
 
 Creating the same rule twice currently creates two separate rules. The endpoint is not idempotent, and there is no uniqueness constraint across rule definition fields.
 
+The `POST /rules` endpoint handles transient Bayse failures conservatively rather than retrying inside the request. It uses a request timeout, logs upstream failures, returns a clean `502 Bad Gateway`, and avoids partial writes. This keeps rule creation simple and predictable, but it means callers may need to retry if Bayse is temporarily unavailable or rate-limited.
+
 ## Assumptions
 
 Prices are probabilities, so threshold targets must be greater than `0` and less than `1`.
@@ -189,6 +191,7 @@ The rolling percent-move window is built from samples collected by this service.
 
 - Add notification delivery through webhooks, email, Slack, or queues.
 - Add idempotency keys or a unique rule-definition constraint for duplicate rule creation.
+- Add retry/backoff handling for transient Bayse errors during rule creation, including returning `Retry-After` for upstream rate limits.
 - Add threshold hysteresis or cooldown periods to reduce alert flapping.
 - Backfill percent-move windows from Bayse price history on startup.
 - Use Bayse order books as a CLOB midpoint fallback when ticker data is unavailable.
